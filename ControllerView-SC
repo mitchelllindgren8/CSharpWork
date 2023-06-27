@@ -1,0 +1,398 @@
+// ********  SocketCommunication   ********
+
+using System.ComponentModel;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Collections.Generic;
+using System.IO;
+using System.Runtime.CompilerServices;
+
+namespace SocketCommunication
+{
+    public partial class Dashboard : Form
+    {
+        private Boolean _connection;
+        private string _currentState;
+        private string _previousState;
+        private string _receive;
+        private string _TextToSend;
+        private TcpClient _client;
+        private TcpListener _listener;
+        public StreamReader STR;
+        public StreamWriter STW;
+
+
+        public Dashboard()
+        {
+            InitializeComponent();
+
+
+            _currentState = "Server"; //this should be moved to a better spot
+            _previousState = "Client"; //this should be moved to a better spot
+
+            // In this example we get one IP address of localhost (IP: 127.0.0.1). If a host has multiple addresses, you will get a list of addresses
+            IPAddress[] ipAddresses = Dns.GetHostAddresses(Dns.GetHostName());
+
+            foreach(IPAddress ipAddress in ipAddresses) 
+            {
+                if(ipAddress.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    tbAddress.Text = ipAddress.ToString();
+                }
+            }
+        }
+
+        private void btnClear_Click(object sender, EventArgs e)
+        {
+            tbChatArea.Text = string.Empty;
+        }
+
+        private void tglButton_CheckedChanged(object sender, EventArgs e)
+        {
+            if(lblSectionheader.Text == "Server")
+            {
+                _currentState = "Client";
+                _previousState = "Server";
+                lblSectionheader.Text = _currentState;
+                lblSectionheader.Location = new Point(113, 42);
+                btnConnectStart.Text = "Connect";
+                btnConnectStart.FillColor = Color.FromArgb(143, 188, 143);
+                btnConnectStart.BorderColor = Color.FromArgb(0, 128, 0);
+            } 
+            else
+            {
+                _currentState = "Server";
+                _previousState = "Client";
+                lblSectionheader.Text = _currentState;
+                lblSectionheader.Location = new Point(109, 42);
+                btnConnectStart.Text = "Start Server";
+                btnConnectStart.FillColor = Color.FromArgb(128, 191, 255);
+                btnConnectStart.BorderColor = Color.FromArgb(0, 115, 230);
+            }
+        }
+
+        private void btnConnectStart_Click(object sender, EventArgs e)
+        {
+            string address = tbAddress.Text;
+            string port = tbPort.Text;
+
+
+            // UI/UX check in order to proceed
+            if(tbAddress.Text != string.Empty && tbPort.Text != string.Empty)
+            {
+                // Checks if application is in Server-Mode or Client-Mode,
+                // We either start a listener or connect a client
+                if (_currentState == "Server")    // Server --> Start
+                {
+                    try
+                    {
+                        tbChatArea.AppendText($"{DateTime.Now:MM/dd/yyyy hh:mm:ss.fff tt}: Server has begun listening.\r\n");
+                        panelConnection.FillColor = Color.Orange;
+                        this.Refresh();
+                        _listener = new TcpListener(IPAddress.Any, Convert.ToInt32(port));
+                        _listener.Start();
+                        _client = _listener.AcceptTcpClient();
+                        STR = new StreamReader(_client.GetStream());
+                        STW = new StreamWriter(_client.GetStream());
+                        STW.AutoFlush = true;
+                        backgroundWorker1.RunWorkerAsync();
+                        backgroundWorker2.WorkerSupportsCancellation = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        tbChatArea.AppendText($"{DateTime.Now:MM/dd/yyyy hh:mm:ss.fff tt}: Server has stopped listening.\r\n");
+                        MessageBox.Show("The server cound not connect and has stopped listening", "Server Error");
+                    }
+                }
+                else                        // Client --> Connect
+                {
+                    try
+                    {
+                        _client = new TcpClient();
+                        IPEndPoint IpEnd = new IPEndPoint(IPAddress.Parse(address), Convert.ToInt32(port));
+                        _client.Connect(IpEnd);
+                        tbChatArea.AppendText($"{DateTime.Now:MM/dd/yyyy hh:mm:ss.fff tt}: Client has connected to a Server.\r\n");
+                        panelConnection.FillColor = Color.Green;
+                        this.Refresh();
+                        STW = new StreamWriter(_client.GetStream());
+                        STR = new StreamReader(_client.GetStream());
+                        STW.AutoFlush = true;
+                        backgroundWorker1.RunWorkerAsync();
+                        backgroundWorker2.WorkerSupportsCancellation = true;
+
+
+                    }
+                    catch (Exception ex)
+                    {
+                        tbChatArea.AppendText($"{DateTime.Now:MM/dd/yyyy hh:mm:ss.fff tt}: Client unable to connect.\r\n");
+                        MessageBox.Show("The client was unable to connect to a server.", "Client Error");
+                    }
+                }
+
+                // This is checked afterwards because both the server and client must be connected
+                try
+                {
+                    if (_client != null && _client.Connected)
+                    {
+                        _connection = true;
+                        btnConnectStart.Enabled = false;
+
+                        if (_currentState == "Server")
+                        {
+                            panelConnection.FillColor = Color.Green;
+                            tbChatArea.AppendText($"{DateTime.Now:MM/dd/yyyy hh:mm:ss.fff tt}: A Client has connected to the Server.\r\n");
+                        }
+                    }
+                    else
+                    {
+                        _connection = false;
+                        btnConnectStart.Enabled = true;
+                    }
+                }
+                catch (ArgumentNullException ane)
+                {
+                    Console.WriteLine("ArgumentNullException : {0}", ane.ToString());
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.ToString());
+                }
+
+                tbAddress.BorderColor = Color.Black;
+                tbPort.BorderColor = Color.Black;
+            } 
+            else
+            {
+                // Responsive UI/UX feature
+                if (tbAddress.Text == string.Empty)
+                {
+                    tbAddress.BorderColor = Color.Red;
+                }
+                else
+                {
+                    tbAddress.BorderColor = Color.Black;
+                }
+
+                // Responsive UI/UX feature
+                if (tbPort.Text == string.Empty)
+                {
+                    tbPort.BorderColor = Color.Red;
+                }
+                else
+                {
+                    tbPort.BorderColor = Color.Black;
+                }
+            }
+
+        }
+
+        private void backgroundWorker1_DoWork(object sender, DoWorkEventArgs e)
+        {
+            while(_client.Connected)
+            {
+                try
+                {
+                    string previousState = _previousState.ToString();
+                    _receive = STR.ReadLine();
+                    this.tbChatArea.Invoke(new MethodInvoker(delegate()
+                        {
+                            tbChatArea.AppendText($"{previousState}: {_receive}\r\n");
+                        }));
+                    _receive = "";
+                }
+                catch(Exception ex)
+                {
+                    //MessageBox.Show("Here: " + ex.Message.ToString());
+                    break;
+                }
+            }
+        }
+
+        private void backgroundWorker2_DoWork(object sender, DoWorkEventArgs e)
+        {
+            // ToDo: if not connected?? --> try/catch 
+            if (_client.Connected)
+            {
+                string currentState = _currentState.ToString();
+                STW.WriteLine(_TextToSend);
+                this.tbChatArea.Invoke(new MethodInvoker(delegate()
+                    {
+                        tbChatArea.AppendText($"{currentState}: {_TextToSend}\r\n");
+                    }));
+
+            } 
+            else
+            {
+
+                MessageBox.Show("Sending Message Failed.");
+            }
+            
+            backgroundWorker2.CancelAsync();
+        }
+
+        private void btnSend_Click(object sender, EventArgs e)
+        {
+            if(tbOutboundMsg.Text != "")
+            {
+                tbOutboundMsg.BorderColor = Color.Black;
+                _TextToSend = tbOutboundMsg.Text;
+                backgroundWorker2.RunWorkerAsync();
+            } 
+            else
+            {
+                tbOutboundMsg.BorderColor = Color.Red;
+            }
+
+            tbOutboundMsg.Text = "";
+        }
+
+        private void tbChatArea_TextChanged(object sender, EventArgs e)
+        {
+            if(tbChatArea.Text == "")
+            {
+                btnClear.Visible = false;
+            } 
+            else
+            {
+                btnClear.Visible = true;
+            }
+        }
+
+        private void btnDisconnect_Click(object sender, EventArgs e)
+        {
+
+            if (lblSectionheader.Text == "Server")
+            {
+                _listener.Stop();
+                tbChatArea.AppendText($"{DateTime.Now:MM/dd/yyyy hh:mm:ss.fff tt}: Server has disconnected.\r\n");
+                btnConnectStart.Enabled = true;
+                //backgroundWorker3.RunWorkerAsync();
+            }
+            else
+            {
+                _client.Close();
+                tbChatArea.AppendText($"{DateTime.Now:MM/dd/yyyy hh:mm:ss.fff tt}: Client has disconnected.\r\n");
+                btnConnectStart.Enabled = true;
+                //backgroundWorker3.RunWorkerAsync();
+            }
+
+
+
+            //if (lblSectionheader.Text == "Server")
+            //{
+
+            //    if (_client != null && _client.Connected)
+            //    {
+            //        _listener.Stop();
+            //        tbChatArea.AppendText($"{DateTime.Now:MM/dd/yyyy hh:mm:ss.fff tt}: Server has disconnected.\r\n");
+            //        btnConnectStart.Enabled = true;
+            //    }
+            //    else
+            //    {
+            //        tbDebug.Text = "Cannot Disconnect";
+            //    }
+            //}
+            //else
+            //{
+            //    if (_listener != null)
+            //    {
+            //        _client.Close();
+            //        tbChatArea.AppendText($"{DateTime.Now:MM/dd/yyyy hh:mm:ss.fff tt}: Client has disconnected.\r\n");
+            //        btnConnectStart.Enabled = true;
+            //    }
+            //    else
+            //    {
+            //        tbDebug.Text = "Cannot Disconnect";
+            //    }
+            //}
+
+
+            //if(_client != null && _client.Connected) 
+            //{
+            //    if (lblSectionheader.Text == "Server")
+            //    {
+            //        _client.Close();
+            //        _listener.Stop();
+
+            //        tbChatArea.AppendText($"{DateTime.Now:MM/dd/yyyy hh:mm:ss.fff tt}: Server has disconnected.\r\n");
+            //        btnConnectStart.Enabled = true;
+
+            //    }
+            //    else
+            //    {
+            //        _client.Close();
+            //        _listener.Stop();
+            //        tbChatArea.AppendText($"{DateTime.Now:MM/dd/yyyy hh:mm:ss.fff tt}: Client has disconnected.\r\n");
+            //        btnConnectStart.Enabled = true;
+
+            //    }
+            //}
+            //else
+            //{
+            //    tbDebug.Text = "Cannot Disconnect";
+            //}
+
+
+            ////error
+            //if(_connection == true && _listener != null)
+            //{
+            //    try
+            //    {
+            //        //error
+            //        _listener.Stop();
+            //        _client.Close();
+
+
+            //        if (lblSectionheader.Text == "Server")
+            //        {
+            //            tbChatArea.AppendText($"{DateTime.Now:MM/dd/yyyy hh:mm:ss.fff tt}: Server has disconnected.\r\n");
+            //            btnConnectStart.Enabled = true;
+            //        }
+            //        else
+            //        {
+            //            tbChatArea.AppendText($"{DateTime.Now:MM/dd/yyyy hh:mm:ss.fff tt}: Client has disconnected.\r\n");
+            //            btnConnectStart.Enabled = true;
+            //        }
+            //    }
+            //    catch(Exception ex) 
+            //    {
+            //        //error
+            //        tbDebug.Text = ex.ToString();
+            //    }
+
+            //} 
+            //else
+            //{
+            //    //error
+            //    tbDebug.Text = "Here";
+            //}
+
+        }
+
+        private void backgroundWorker3_DoWork(object sender, DoWorkEventArgs e)
+        {
+            //while (_client.Connected)
+            //{
+                try
+                {
+                    if (lblSectionheader.Text == "Server")
+                    {
+                        _client.Close();
+                    }
+                    else
+                    {
+                        _listener.Stop();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    //MessageBox.Show("Here: " + ex.Message.ToString());
+                    //break;
+                }
+            //}
+        }
+    }
+}
