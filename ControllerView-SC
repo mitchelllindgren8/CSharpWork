@@ -52,6 +52,7 @@ namespace SocketCommunication
         {
             if(lblSectionheader.Text == "Server")
             {
+
                 _currentState = "Client";
                 _previousState = "Server";
                 lblSectionheader.Text = _currentState;
