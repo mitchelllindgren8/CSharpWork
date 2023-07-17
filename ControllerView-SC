@@ -39,6 +39,7 @@ namespace SocketCommunication
                 if(ipAddress.AddressFamily == AddressFamily.InterNetwork)
                 {
                     tbAddress.Text = ipAddress.ToString();
+
                 }
             }
         }
