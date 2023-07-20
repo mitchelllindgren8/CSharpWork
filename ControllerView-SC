@@ -54,7 +54,6 @@ namespace SocketCommunication
         {
             if(lblSectionheader.Text == "Server")
             {
-
                 _currentState = "Client";
                 _previousState = "Server";
                 lblSectionheader.Text = _currentState;
@@ -79,7 +78,6 @@ namespace SocketCommunication
         {
             string address = tbAddress.Text;
             string port = tbPort.Text;
-
 
             // UI/UX check in order to proceed
             if(tbAddress.Text != string.Empty && tbPort.Text != string.Empty)
