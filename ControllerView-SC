@@ -84,7 +84,6 @@ namespace SocketCommunication
                 // We either start a listener or connect a client
                 if (_currentState == "Server")    // Server --> Start
                 {
-
                     try
                     {
                         tbChatArea.AppendText($"{DateTime.Now:MM/dd/yyyy hh:mm:ss.fff tt}: Server has begun listening.\r\n");
