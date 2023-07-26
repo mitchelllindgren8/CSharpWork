@@ -120,7 +120,6 @@ namespace SocketCommunication
                         backgroundWorker1.RunWorkerAsync();
                         backgroundWorker2.WorkerSupportsCancellation = true;
 
-
                     }
                     catch (Exception ex)
                     {
