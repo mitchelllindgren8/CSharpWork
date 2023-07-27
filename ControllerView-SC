@@ -24,6 +24,7 @@ namespace SocketCommunication
         public StreamReader STR;
         public StreamWriter STW;
 
+
         public Dashboard()
         {
             InitializeComponent();
