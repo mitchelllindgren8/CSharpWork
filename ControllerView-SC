@@ -27,6 +27,7 @@ namespace SocketCommunication
 
         public Dashboard()
         {
+
             InitializeComponent();
 
             _currentState = "Server"; //this should be moved to a better spot
