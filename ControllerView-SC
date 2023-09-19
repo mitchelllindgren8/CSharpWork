@@ -15,6 +15,7 @@ namespace SocketCommunication
     public partial class Dashboard : Form
     {
 
+
         private Boolean _connection;
         private string _currentState;
         private string _previousState;
