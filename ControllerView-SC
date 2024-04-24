@@ -45,6 +45,7 @@ namespace SocketCommunication
             }
         }
 
+
         private void btnClear_Click(object sender, EventArgs e)
         {
             tbChatArea.Text = string.Empty;
