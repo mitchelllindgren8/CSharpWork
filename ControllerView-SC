@@ -28,7 +28,6 @@ namespace SocketCommunication
         {
 
             InitializeComponent();
-
             _currentState = "Server"; //this should be moved to a better spot
             _previousState = "Client"; //this should be moved to a better spot
 
