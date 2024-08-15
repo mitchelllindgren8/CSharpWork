@@ -20,6 +20,7 @@ namespace SocketCommunication
         private string _receive;
         private string _TextToSend;
         private TcpClient _client;
+        private TcpClient _client2;
         private TcpListener _listener;
         public StreamReader STR;
         public StreamWriter STW;
